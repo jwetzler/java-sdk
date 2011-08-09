@@ -103,7 +103,7 @@ public class ForceMetaDataListener implements MetaDataListener {
      * @param cmd - actual class metadata that will get updated with Force.com annotations
      */
     private void updateAnnotations(AbstractClassMetaData cmd) {
-        ClassLoaderResolver clr = storeManager.getOMFContext().getClassLoaderResolver(storeManager.getClass().getClassLoader());
+        ClassLoaderResolver clr = storeManager.getNucleusContext().getClassLoaderResolver(storeManager.getClass().getClassLoader());
         Class<?> clazz = clr.classForName(cmd.getFullClassName());
         AbstractClassMetaData cmdNew = annotationReader.getMetaDataForClass(clazz, cmd.getPackageMetaData(), clr);
         ExtensionMetaData[] extensions = cmdNew.getExtensions();

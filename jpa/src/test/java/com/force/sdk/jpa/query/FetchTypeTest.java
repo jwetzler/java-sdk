@@ -34,7 +34,7 @@ import javax.persistence.Persistence;
 import javax.persistence.Query;
 
 import com.force.sdk.jpa.entities.related.Entity6;
-import org.datanucleus.jpa.EntityManagerImpl;
+import org.datanucleus.api.jpa.JPAEntityManager;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -118,16 +118,16 @@ public class FetchTypeTest extends BaseJPAQueryTest {
         String expectedQuery = String.format("%s o ", baseQuery);
         String expectedFindQuery = String.format("%s where Id='%s'", baseQuery, entityId);
         mockQueryConn.setExpectedSoqlQuery(expectedQuery);
-        int oldDepth = ((EntityManagerImpl) em).getFetchPlan().getMaxFetchDepth();
+        int oldDepth = ((JPAEntityManager) em).getFetchPlan().getMaxFetchDepth();
         try {
-            ((EntityManagerImpl) em).getFetchPlan().setMaxFetchDepth(fetchDepth);
+            ((JPAEntityManager) em).getFetchPlan().setMaxFetchDepth(fetchDepth);
             em.createQuery("select o from Entity6 o)", Entity6.class).getResultList();
 
             mockQueryConn.setExpectedSoqlQuery(expectedFindQuery);
             // Test the same with find
             em.find(Entity6.class, entityId);
         } finally {
-            ((EntityManagerImpl) em).getFetchPlan().setMaxFetchDepth(oldDepth);
+            ((JPAEntityManager) em).getFetchPlan().setMaxFetchDepth(oldDepth);
         }
 
         em.clear();

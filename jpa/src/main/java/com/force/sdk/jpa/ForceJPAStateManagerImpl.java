@@ -27,8 +27,9 @@
 package com.force.sdk.jpa;
 
 import org.datanucleus.ObjectManager;
-import org.datanucleus.jpa.state.JPAStateManagerImpl;
 import org.datanucleus.metadata.AbstractClassMetaData;
+import org.datanucleus.state.JDOStateManagerImpl;
+import org.datanucleus.state.StateManager;
 
 /**
  * Used as a marker to distinguish from JPAStateManagerImpl. The logic is used for
@@ -36,7 +37,7 @@ import org.datanucleus.metadata.AbstractClassMetaData;
  *
  * @author Fiaz Hossain
  */
-public class ForceJPAStateManagerImpl extends JPAStateManagerImpl {
+public class ForceJPAStateManagerImpl extends JDOStateManagerImpl {
 
     /**
      * Create a special state manager to use for {@code merge()} calls on transient objects.
@@ -47,31 +48,5 @@ public class ForceJPAStateManagerImpl extends JPAStateManagerImpl {
     public ForceJPAStateManagerImpl(ObjectManager om, AbstractClassMetaData cmd) {
         super(om, cmd);
     }
-    
-    /**
-     * Relationship checks fail with NPE because this StateManager is created on transient objects. We override the
-     * method here to bypass the super class implementation
-     */
-    @Override
-    public void checkManagedRelations() {
-        // no-op
-    }
-    
-    /**
-     * Relationship checks fail with NPE because this StateManager is created on transient objects. We override the
-     * method here to bypass the super class implementation
-     */
-    @Override
-    public void processManagedRelations() {
-        // no-op
-    }
-    
-    /**
-     * Relationship checks fail with NPE because this StateManager is created on transient objects. We override the
-     * method here to bypass the super class implementation
-     */
-    @Override
-    public void clearManagedRelations() {
-        // no-op
-    }
+
 }

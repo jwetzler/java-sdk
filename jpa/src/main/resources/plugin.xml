@@ -35,6 +35,10 @@
         <store-manager class-name="com.force.sdk.jpa.ForceStoreManager" key="force" url-key="force"/>
     </extension>
 
+    <extension point="org.datanucleus.metadata_manager">
+       <metadata-manager class="com.force.sdk.jpa.ForceMetaDataManager" name="JPA" priority="1"/>
+    </extension>
+
     <!-- QUERY LANGUAGES -->
     <extension point="org.datanucleus.store_query_query">
         <query class-name="com.force.sdk.jpa.query.JDOQLQuery" datastore="force" name="JDOQL"/>

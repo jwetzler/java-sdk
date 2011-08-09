@@ -38,7 +38,6 @@ import org.datanucleus.metadata.AbstractClassMetaData;
 import org.datanucleus.metadata.AbstractMemberMetaData;
 import org.datanucleus.metadata.ColumnMetaData;
 import org.datanucleus.metadata.FieldPersistenceModifier;
-import org.datanucleus.state.ObjectProviderImpl;
 import org.datanucleus.store.ObjectProvider;
 import org.datanucleus.store.fieldmanager.AbstractFieldManager;
 
@@ -180,8 +179,7 @@ public class ForceInsertFieldManager extends AbstractFieldManager {
                 if (acmd != null) {
                     actualValue = PersistenceUtils.getMemberValue(acmd, acmd.getPKMemberPositions()[0], value);
                     if (actualValue == null) {
-                        ObjectManager om = ((ObjectProviderImpl) objectProvider).getStateManager().getObjectManager();
-                        if (((ForceObjectManagerImpl) om).isInAllOrNothingMode()) {
+                        if (storeManager.isInAllOrNothingMode()) {
                             /**
                              * This is instance of AllOrNothing transaction
                              * Since the parent object has not been saved to the db yet
@@ -196,9 +194,9 @@ public class ForceInsertFieldManager extends AbstractFieldManager {
                                                                + parent.getTableName().getName());
                             }
                             parentRef.setType(parent.getTableName().getForceApiName());
-                            SObject parentSObject = ((ForceObjectManagerImpl) om).getParentSObject(value);
+                            /*SObject parentSObject = ((ForceObjectManagerImpl) om).getParentSObject(value);
                             parentRef.setField(parent.getExternalIdColumn().getFieldName(),
-                                                parentSObject.getField(parent.getExternalIdColumn().getFieldName()));
+                                                parentSObject.getField(parent.getExternalIdColumn().getFieldName()));*/ //TODO jwetzler
                             actualValue = parentRef;
                             actualFieldName = column.getForceApiRelationshipName();
                         } else {

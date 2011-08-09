@@ -34,7 +34,7 @@ import java.util.Map;
 import javax.persistence.*;
 
 import org.datanucleus.ClassLoaderResolver;
-import org.datanucleus.OMFContext;
+import org.datanucleus.NucleusContext;
 import org.datanucleus.exceptions.NucleusUserException;
 import org.datanucleus.metadata.*;
 
@@ -121,11 +121,11 @@ public final class PersistenceUtils {
         return value != null && Boolean.valueOf(value);
     }
     
-    private static boolean isReadOnlyFieldSchema(AbstractMemberMetaData ammd, OMFContext omf) {
+    private static boolean isReadOnlyFieldSchema(AbstractMemberMetaData ammd, NucleusContext nucleusContext) {
         // Load up the class metadata for the owning class of this member (for example, if an inherited field,
         // the super class which has declared it)
         AbstractClassMetaData owningAcmd =
-            omf.getMetaDataManager().getMetaDataForClass(ammd.getClassName(), omf.getClassLoaderResolver(null));
+            nucleusContext.getMetaDataManager().getMetaDataForClass(ammd.getClassName(), nucleusContext.getClassLoaderResolver(null));
         return isReadOnlySchemaInternal(owningAcmd);
     }
     
@@ -329,9 +329,9 @@ public final class PersistenceUtils {
     }
     
     private static String getForceApiRelationshipName(AbstractMemberMetaData ammd, Map<String, String> extensions,
-            OMFContext omf) {
+            NucleusContext nucleusContext) {
         AbstractClassMetaData acmd =
-            PersistenceUtils.getMemberElementClassMetaData(ammd, omf.getClassLoaderResolver(null), omf.getMetaDataManager());
+            PersistenceUtils.getMemberElementClassMetaData(ammd, nucleusContext.getClassLoaderResolver(null), nucleusContext.getMetaDataManager());
         AbstractMemberMetaData mmd = acmd.getMetaDataForMember(ammd.getMappedBy());
         if (mmd == null) {
             // The mappedBy field does not exist
@@ -356,17 +356,17 @@ public final class PersistenceUtils {
      * via JPA or Force.com annotations, and relationship fields require special handling.
      * 
      * @param ammd  the metadata object for the field we're retrieving a name for
-     * @param omf   the Object Manager Factory context
+     * @param nucleusContext   the Object Manager Factory context
      * @return the name of a field/column as it would appear in the Force.com API
      */
-    public static String getForceApiName(AbstractMemberMetaData ammd, OMFContext omf) {
+    public static String getForceApiName(AbstractMemberMetaData ammd, NucleusContext nucleusContext) {
         Map<String, String> extensions = getForceExtensions(ammd);
         
         if (ammd.getCollection() != null || ammd.getMap() != null) {
-            String relationshipName = getForceApiRelationshipName(ammd, extensions, omf);
+            String relationshipName = getForceApiRelationshipName(ammd, extensions, nucleusContext);
             
             // If the relationship already exists
-            if (isReadOnlyFieldSchema(ammd, omf)) {
+            if (isReadOnlyFieldSchema(ammd, nucleusContext)) {
                 return relationshipName;
             }
             
@@ -386,7 +386,7 @@ public final class PersistenceUtils {
             // so we should just use whatever java field name is loaded
             // (e.g. standard field name, @Column annotation)
             if (ForceColumnMetaData.STANDARD_FIELDS.contains(fieldName.toLowerCase())
-                    || isReadOnlyFieldSchema(ammd, omf)) {
+                    || isReadOnlyFieldSchema(ammd, nucleusContext)) {
                 return fieldName;
             }
             

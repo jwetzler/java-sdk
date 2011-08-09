@@ -40,7 +40,6 @@ import com.force.sdk.jpa.annotation.CustomObject;
 @Entity
 @CustomObject(readOnlySchema = true, virtualSchema = true)
 public class Owner {
-
     protected String id;
     protected String name;
 

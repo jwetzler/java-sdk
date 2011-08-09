@@ -33,7 +33,7 @@ import java.util.Properties;
 
 import javax.jdo.PersistenceManagerFactory;
 
-import org.datanucleus.jdo.JDOPersistenceManager;
+import org.datanucleus.api.jdo.JDOPersistenceManager;
 import org.datanucleus.util.NucleusLogger;
 
 /**
@@ -43,7 +43,7 @@ import org.datanucleus.util.NucleusLogger;
  *
  * @author Fiaz Hossain
  */
-public class ForceJDOPersistenceManagerFactory extends org.datanucleus.jdo.JDOPersistenceManagerFactory {
+public class ForceJDOPersistenceManagerFactory extends org.datanucleus.api.jdo.JDOPersistenceManagerFactory {
 
     /** Cache of PMF keyed by the name. Only used when having single-PMF property enabled. */
     private static Map<String, ForceJDOPersistenceManagerFactory> pmfByName;
@@ -98,7 +98,7 @@ public class ForceJDOPersistenceManagerFactory extends org.datanucleus.jdo.JDOPe
         final ForceJDOPersistenceManagerFactory pmf = new ForceJDOPersistenceManagerFactory(props);
 
         Boolean singleton =
-            pmf.getOMFContext().getPersistenceConfiguration().getBooleanObjectProperty("datanucleus.singletonPMFForName");
+            pmf.getNucleusContext().getPersistenceConfiguration().getBooleanObjectProperty("datanucleus.singletonPMFForName");
         if (singleton != null && singleton) {
             // Check on singleton pattern. Would be nice to know the name of the PMF before creation
             // but not possible without restructuring parse code, so leave as is for now
@@ -130,9 +130,21 @@ public class ForceJDOPersistenceManagerFactory extends org.datanucleus.jdo.JDOPe
      * Construct a {@link JDOPersistenceManager}.  Override if you want to construct a subclass instead.
      */
     @Override
-    protected JDOPersistenceManager newPM(org.datanucleus.jdo.JDOPersistenceManagerFactory jdoPmf,
+    protected JDOPersistenceManager newPM(org.datanucleus.api.jdo.JDOPersistenceManagerFactory jdoPmf,
             String userName, String password) {
         
         return new com.force.sdk.jdo.ForceJDOPersistenceManager(jdoPmf, userName, password);
+    }
+
+    @Override
+    public void setQueryTimeoutMillis(Integer integer) {
+        // todo: Auto-generated method stub
+
+    }
+
+    @Override
+    public Integer getQueryTimeoutMillis() {
+        // todo: Auto-generated method stub
+        return null;
     }
 }

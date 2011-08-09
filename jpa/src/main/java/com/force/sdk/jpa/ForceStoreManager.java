@@ -29,17 +29,16 @@ package com.force.sdk.jpa;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.datanucleus.ClassLoaderResolver;
-import org.datanucleus.OMFContext;
+import org.datanucleus.NucleusContext;
 import org.datanucleus.PersistenceConfiguration;
 import org.datanucleus.metadata.AbstractClassMetaData;
 import org.datanucleus.plugin.PluginManager;
 import org.datanucleus.plugin.PluginRegistry;
-import org.datanucleus.store.AbstractStoreManager;
-import org.datanucleus.store.ExecutionContext;
-import org.datanucleus.store.NucleusConnection;
+import org.datanucleus.store.*;
 
 import com.force.sdk.connector.ForceConnectorConfig;
 import com.force.sdk.jpa.schema.ForceSchemaWriter;
@@ -77,19 +76,26 @@ public class ForceStoreManager extends AbstractStoreManager {
     private ForceSchemaWriter schemaWriter;
     private final boolean forDelete;
     private final boolean schemaCreateClient;
-    
+    private final boolean allOrNothingEnabled;
+
+    private boolean inAllOrNothingMode;
+
+    public void setInAllOrNothingMode(boolean inAllOrNothingMode) {
+        this.inAllOrNothingMode = inAllOrNothingMode;
+    }
+
     /**
      * Creates a store manager for use with the Force.com API. Set up the API connection
      * configs, set some default properties and read in values from persistence.xml
      * 
      * @param clr  the class loader resolver
-     * @param omfContext the corresponding object manager factory context
+     * @param nucleusContext the corresponding object manager factory context
      * @throws NoSuchFieldException thrown if there is a problem setting up the plugin manager
      * @throws IllegalAccessException thrown if there is a problem setting up the plugin manager
      */
-    public ForceStoreManager(ClassLoaderResolver clr, OMFContext omfContext) throws NoSuchFieldException, IllegalAccessException {
-        super(FORCE_KEY, clr, omfContext);
-    
+    public ForceStoreManager(ClassLoaderResolver clr, NucleusContext nucleusContext, Map<String, Object> props) throws NoSuchFieldException, IllegalAccessException {
+        super(FORCE_KEY, clr, nucleusContext, props);
+
         String endpoint = getConnectionURL();
         
         // Grab the connection information from persistence.xml.  If none exists,
@@ -109,19 +115,17 @@ public class ForceStoreManager extends AbstractStoreManager {
             }
         }
         
-        setCustomPluginManager();
-        
         // Handler for metadata
         metadataListener = new ForceMetaDataListener(this);
-        omfContext.getMetaDataManager().registerListener(metadataListener);
+        nucleusContext.getMetaDataManager().registerListener(metadataListener);
 
         // Handler for persistence process
-        persistenceHandler2 = new ForcePersistenceHandler(this);
+        persistenceHandler = new ForcePersistenceHandler(this);
         
         // Store schema handler
         schemaHandler = new ForceStoreSchemaHandler(this);
         
-        PersistenceConfiguration conf = omfContext.getPersistenceConfiguration();
+        PersistenceConfiguration conf = nucleusContext.getPersistenceConfiguration();
         boolean autoCreateSchema = conf.getBooleanProperty("datanucleus.autoCreateSchema");
         if (autoCreateSchema) {
             autoCreateTables = true;
@@ -150,18 +154,21 @@ public class ForceStoreManager extends AbstractStoreManager {
         }
         
         // setup optimistic enabled
-        Object isEnabled = omfContext.getPersistenceConfiguration().getProperty("datanucleus.Optimistic");
+        Object isEnabled = nucleusContext.getPersistenceConfiguration().getProperty("datanucleus.Optimistic");
         enableOptimisticTransactions = isEnabled != null && (isEnabled instanceof Boolean && isEnabled.equals(Boolean.TRUE)
                 || isEnabled instanceof String && "true".equals(isEnabled));
-        
+
+        allOrNothingEnabled = nucleusContext.getPersistenceConfiguration().getBooleanProperty("force.AllOrNothing");
         logConfiguration();
     }
-    
-    private void setCustomPluginManager() throws NoSuchFieldException, IllegalAccessException {
-        PluginManager pluginMgr = omfContext.getPluginManager();
-        Field registryField = PluginManager.class.getDeclaredField("registry");
-        registryField.setAccessible(true);
-        registryField.set(pluginMgr, new ForcePluginRegistry((PluginRegistry) registryField.get(pluginMgr)));
+
+    /**
+     * Checks whether an active transaction is currently flushing data to the datastore in all or nothing mode.
+     *
+     * @return {@code true} if all or nothing mode is enabled and we are currently flushing data in this mode
+     */
+    public boolean isInAllOrNothingMode() {
+        return allOrNothingEnabled && this.inAllOrNothingMode;
     }
 
     @Override
@@ -179,7 +186,7 @@ public class ForceStoreManager extends AbstractStoreManager {
      */
     @Override
     public void close() {
-        omfContext.getMetaDataManager().deregisterListener(metadataListener);
+        nucleusContext.getMetaDataManager().deregisterListener(metadataListener);
         super.close();
     }
 

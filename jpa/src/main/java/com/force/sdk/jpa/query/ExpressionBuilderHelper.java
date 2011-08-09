@@ -88,7 +88,7 @@ public class ExpressionBuilderHelper {
          * Finally use the default configured "datanucleus.maxFetchDepth" property
          */
         int maxDepth = mfd != null ? (Integer) mfd : fetchPlan != null ? fetchPlan.getMaxFetchDepth()
-            : forceQuery.getExecutionContext().getOMFContext()
+            : forceQuery.getExecutionContext().getNucleusContext()
                                                 .getPersistenceConfiguration().getIntProperty("datanucleus.maxFetchDepth");
         if (maxDepth > 5) {
             throw new NucleusException("Max fetch depth cannot be greater than 5.");

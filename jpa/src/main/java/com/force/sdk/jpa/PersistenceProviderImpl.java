@@ -33,8 +33,7 @@ import java.util.*;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.spi.PersistenceUnitInfo;
 
-import org.datanucleus.jpa.EntityManagerFactoryImpl;
-import org.datanucleus.jpa.exceptions.*;
+import org.datanucleus.api.jpa.exceptions.*;
 
 /**
  * 
@@ -42,7 +41,7 @@ import org.datanucleus.jpa.exceptions.*;
  *
  * @author Jill Wetzler
  */
-public class PersistenceProviderImpl extends org.datanucleus.jpa.PersistenceProviderImpl {
+public class PersistenceProviderImpl extends org.datanucleus.api.jpa.PersistenceProviderImpl {
     
     private static final String PERSISTENCE_PROVIDER_PROPERTY = "javax.persistence.provider";
 
@@ -56,8 +55,7 @@ public class PersistenceProviderImpl extends org.datanucleus.jpa.PersistenceProv
     @Override
     public EntityManagerFactory createContainerEntityManagerFactory(PersistenceUnitInfo unitInfo, Map properties) {
         try {
-            EntityManagerFactoryImpl emf = new ForceEntityManagerFactory(unitInfo, getOverrideMap(properties));
-            return emf;
+            return new ForceEntityManagerFactory(unitInfo, getOverrideMap(properties));
         } catch (NotProviderException npe) {
             return null;
         } catch (NoPersistenceUnitException npue) {
@@ -76,8 +74,7 @@ public class PersistenceProviderImpl extends org.datanucleus.jpa.PersistenceProv
     @Override
     public EntityManagerFactory createEntityManagerFactory(String unitName, Map properties) {
         try {
-            EntityManagerFactoryImpl emf = new ForceEntityManagerFactory(unitName, getOverrideMap(properties));
-            return emf;
+            return new ForceEntityManagerFactory(unitName, getOverrideMap(properties));
         } catch (NotProviderException npe) {
             return null;
         } catch (NoPersistenceUnitException npue) {
@@ -90,7 +87,7 @@ public class PersistenceProviderImpl extends org.datanucleus.jpa.PersistenceProv
     @SuppressWarnings("unchecked")
     private Map getOverrideMap(Map properties) {
         Map<Object, Object> m = new HashMap<Object, Object>(properties != null ? properties : Collections.EMPTY_MAP);
-        m.put(PERSISTENCE_PROVIDER_PROPERTY, org.datanucleus.jpa.PersistenceProviderImpl.class.getName());
+        m.put(PERSISTENCE_PROVIDER_PROPERTY, org.datanucleus.api.jpa.PersistenceProviderImpl.class.getName());
         m.put(PROPERTY_PERSISTENCE_MANAGER_FACTORY_CLASS, "com.force.sdk.jdo.ForceJDOPersistenceManagerFactory");
         return m;
     }

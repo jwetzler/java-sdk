@@ -33,7 +33,6 @@ import java.util.*;
 import org.datanucleus.ObjectManager;
 import org.datanucleus.exceptions.*;
 import org.datanucleus.metadata.AbstractClassMetaData;
-import org.datanucleus.state.ObjectProviderImpl;
 import org.datanucleus.store.*;
 
 import com.force.sdk.jpa.exception.ForceApiExceptionMap;
@@ -82,8 +81,8 @@ public class ForcePersistenceHandler extends AbstractPersistenceHandler {
         storeManager.assertReadOnlyForUpdateOfObject(op);
 
         ForceManagedConnection mconn = (ForceManagedConnection) storeManager.getConnection(op.getExecutionContext());
-        ObjectManager om = ((ObjectProviderImpl) op).getStateManager().getObjectManager();
-        boolean isAllOrNothingMode = om instanceof ForceObjectManagerImpl && ((ForceObjectManagerImpl) om).isInAllOrNothingMode();
+
+        boolean isAllOrNothingMode = storeManager.isInAllOrNothingMode();
         try {
             Object pkValue = op.provideField(op.getClassMetaData().getPKMemberPositions()[0]);
             if (!isAllOrNothingMode) {
@@ -96,7 +95,7 @@ public class ForcePersistenceHandler extends AbstractPersistenceHandler {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Queuing for A-O-N delete object: " + pkValue);
                 }
-                ((ForceObjectManagerImpl) om).addToDeleteList((String) pkValue);
+               // ((ForceObjectManagerImpl) om).addToDeleteList((String) pkValue); //TODO jwetzler
             }
         } catch (ApiFault af) {
             throw ForceApiExceptionMap.mapToNucleusException(af, false /* isQuery */,
@@ -334,9 +333,9 @@ public class ForcePersistenceHandler extends AbstractPersistenceHandler {
              * the current object will not be dirty and we have nothing else to do.
              */
             if (!fm.isDirty()) return;
-            ObjectManager om = ((ObjectProviderImpl) op).getStateManager().getObjectManager();
+
             boolean isAllOrNothingMode =
-                om instanceof ForceObjectManagerImpl && ((ForceObjectManagerImpl) om).isInAllOrNothingMode();
+                storeManager.isInAllOrNothingMode();
             SObject toSave;
             if (!isAllOrNothingMode) {
                 PartnerConnection connection = getPartnerConnection(mconn, op);
@@ -368,17 +367,17 @@ public class ForcePersistenceHandler extends AbstractPersistenceHandler {
                     // so if op.getVersion is null, we give a Calendar set to System.currentTimeMilis + 1 HOUR so
                     // the if-modified-before check for the object without @Version will always succeed
                     toSave = fm.getSObject(false);
-                    ((ForceObjectManagerImpl) om).addToUpdateList(toSave,
-                            op.getVersion() != null ? (Calendar) op.getVersion() : getVersionForUnversioned());
+                    /*((ForceObjectManagerImpl) om).addToUpdateList(toSave,
+                            op.getVersion() != null ? (Calendar) op.getVersion() : getVersionForUnversioned());*/ //TODO jwetzler
                 } else {
-                    toSave = fm.getSObject(true);
-                    ((ForceObjectManagerImpl) om).addToCreateList(toSave, op);
+                    /*toSave = fm.getSObject(true);
+                    ((ForceObjectManagerImpl) om).addToCreateList(toSave, op);*/ //TODO jwetzler
                 }
                 if (LOGGER.isDebugEnabled()) {
                     if (fieldNumbers != null) {
-                        LOGGER.debug("Queuing for A-O-N update object: " + toSave.getType() + " id: " + toSave.getId());
+                        //LOGGER.debug("Queuing for A-O-N update object: " + toSave.getType() + " id: " + toSave.getId()); //TODO jwetzler
                     } else {
-                        LOGGER.debug("Queuing for A-O-N create object: " + toSave.getType());
+                        //LOGGER.debug("Queuing for A-O-N create object: " + toSave.getType());//TODO jwetzler
                     }
                 }
             }

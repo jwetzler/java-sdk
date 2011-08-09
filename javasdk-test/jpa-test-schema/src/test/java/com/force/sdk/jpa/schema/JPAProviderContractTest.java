@@ -129,7 +129,7 @@ public class JPAProviderContractTest extends SchemaBaseTest {
         while (iter.hasNext()) {
             PersistenceProvider pp = iter.next();
             if (!(pp instanceof com.force.sdk.jpa.PersistenceProviderImpl
-                    || pp instanceof org.datanucleus.jpa.PersistenceProviderImpl)) {
+                    || pp instanceof org.datanucleus.api.jpa.PersistenceProviderImpl)) {
                 Assert.fail("Found provider of type " + pp.getClass().getName());
             }
             if (pp instanceof com.force.sdk.jpa.PersistenceProviderImpl) {

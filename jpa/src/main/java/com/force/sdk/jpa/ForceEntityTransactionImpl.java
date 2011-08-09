@@ -27,7 +27,7 @@
 package com.force.sdk.jpa;
 
 import org.datanucleus.ObjectManager;
-import org.datanucleus.jpa.EntityTransactionImpl;
+import org.datanucleus.api.jpa.JPAEntityTransaction;
 
 /**
  * 
@@ -36,7 +36,7 @@ import org.datanucleus.jpa.EntityTransactionImpl;
  *
  * @author Fiaz Hossain
  */
-public class ForceEntityTransactionImpl extends EntityTransactionImpl {
+public class ForceEntityTransactionImpl extends JPAEntityTransaction {
 
     /**
      * Constructor for a Force.com entity transaction.

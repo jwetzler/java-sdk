@@ -33,11 +33,14 @@ import java.net.URL;
 import java.util.*;
 
 import org.datanucleus.ClassLoaderResolver;
-import org.datanucleus.OMFContext;
+import org.datanucleus.NucleusContext;
+import org.datanucleus.api.jpa.metadata.JPAMetaDataManager;
 import org.datanucleus.exceptions.NucleusException;
 import org.datanucleus.exceptions.NucleusUserException;
-import org.datanucleus.jpa.metadata.JPAMetaDataManager;
 import org.datanucleus.metadata.*;
+import org.datanucleus.plugin.ConfigurationElement;
+import org.datanucleus.store.StoreManager;
+import org.datanucleus.store.connection.ConnectionFactory;
 import org.datanucleus.util.NucleusLogger;
 import org.datanucleus.util.StringUtils;
 
@@ -45,6 +48,8 @@ import com.force.sdk.jpa.model.Owner;
 import com.force.sdk.jpa.table.ColumnImpl;
 import com.force.sdk.jpa.table.TableImpl;
 import com.sforce.ws.ConnectionException;
+
+import javax.persistence.Persistence;
 
 /**
  * Custom Metadata Manager so we can control the timing of Force.com object and field creation.
@@ -58,7 +63,7 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
      * 
      * @param ctxt the object manager factory context
      */
-    public ForceMetaDataManager(OMFContext ctxt) {
+    public ForceMetaDataManager(NucleusContext ctxt) {
         super(ctxt);
     }
     
@@ -73,18 +78,18 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
     @Override
     public FileMetaData[] loadPersistenceUnit(PersistenceUnitMetaData pumd, ClassLoader loader) {
         // Check for a custom force connection name
-        if (!omfContext.getPersistenceConfiguration().hasProperty("force.ConnectionName")) {
+        if (!nucleusContext.getPersistenceConfiguration().hasProperty("force.ConnectionName")) {
             
             // Default the force connection name to the persistence unit name.  This will be used to
             // potentially look up connection information (see ForceConnectionFactory.createManagedConnection)
             if (pumd.getName() != null && pumd.getName().length() != 0) {
-                omfContext.getPersistenceConfiguration().setProperty("force.ConnectionName", pumd.getName());
-            } else if (omfContext.getPersistenceConfiguration().getStringProperty("datanucleus.ConnectionUrl") == null) {
+                nucleusContext.getPersistenceConfiguration().setProperty("force.ConnectionName", pumd.getName());
+            } else if (nucleusContext.getPersistenceConfiguration().getStringProperty("datanucleus.ConnectionUrl") == null) {
                 throw new NucleusUserException("Must specify unit name or connection url");
             }
         }
 
-        ForceStoreManager storeManager = (ForceStoreManager) omfContext.getStoreManager();
+        ForceStoreManager storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
         if (storeManager.isSchemaCreateClient()) {
             /**
              * DataNucleus does not automatically initialize classes from jars.
@@ -116,7 +121,7 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
             for (int i = 0; i < md.getNoOfPackages(); i++) {
                 PackageMetaData pmd = md.getPackage(i);
                 for (int j = 0; j < pmd.getNoOfClasses(); j++) {
-                    ClassLoaderResolver clr = omfContext.getClassLoaderResolver(null);
+                    ClassLoaderResolver clr = nucleusContext.getClassLoaderResolver(null);
                     ClassMetaData cmd = pmd.getClass(j);
                     Class c = null;
                     String className = cmd.getFullClassName();
@@ -183,7 +188,7 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
                         continue;
                     }
                     try {
-                        populateFieldNames(cmd, getOMFContext());
+                        populateFieldNames(cmd, getNucleusContext());
                     } catch (ConnectionException ex) {
                         throw new NucleusException("Exception during initialization", ex);
                     }
@@ -258,9 +263,27 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         /**
          * Call preInitialise here
          */
-        ForceStoreManager storeManager = (ForceStoreManager) omfContext.getStoreManager();
+        ConfigurationElement cfElem = nucleusContext.getPluginManager().getConfigurationElementForExtension(
+            "org.datanucleus.store_connectionfactory",
+            new String[] {"datastore", "transactional"}, new String[] {"force", "true"});
+        System.err.println(cfElem);
+        String txConnectionFactoryName = cfElem.getAttribute("name");
+            try
+            {
+                ConnectionFactory cf = (ConnectionFactory)nucleusContext.getPluginManager().createExecutableExtension(
+                    "org.datanucleus.store_connectionfactory",
+                    new String[] {"datastore", "transactional"},
+                    new String[] {"force", "true"}, "class-name",
+                    new Class[] {StoreManager.class, String.class},
+                    new Object[] {this, "tx"});
+            } catch (Exception ex) {
+                System.err.println("Exception thrown: " + ex.getMessage());
+            }
+        nucleusContext.initialise();
+        ForceStoreManager storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
         storeManager.preInitialiseFileMetaData(classMetaDataByClass.values());
-        
+
+
         // b). Initialise MetaData
         if (NucleusLogger.METADATA.isDebugEnabled()) {
             NucleusLogger.METADATA.debug(LOCALISER.msg("044019"));
@@ -287,8 +310,8 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         storeManager.postInitialiseFileMetaData();
     }
     
-    private void populateFieldNames(AbstractClassMetaData acmd, OMFContext omf) throws ConnectionException {
-        ForceStoreManager storeManager = (ForceStoreManager) omfContext.getStoreManager();
+    private void populateFieldNames(AbstractClassMetaData acmd, NucleusContext nCtx) throws ConnectionException {
+        ForceStoreManager storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
         
         // Grab transactional connection factory
         TableImpl table = storeManager.getTable(acmd);
@@ -297,7 +320,7 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         int[] fieldNumbers =  acmd.getAllMemberPositions();
         if (fieldNumbers != null && fieldNumbers.length > 0) {
             for (int column : fieldNumbers) {
-                addColumn(table, acmd.getMetaDataForManagedMemberAtAbsolutePosition(column), omf);
+                addColumn(table, acmd.getMetaDataForManagedMemberAtAbsolutePosition(column), nCtx);
             }
         }
         
@@ -312,14 +335,14 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         
     }
     
-    private void addColumn(TableImpl table, AbstractMemberMetaData ammd, OMFContext omf) {
+    private void addColumn(TableImpl table, AbstractMemberMetaData ammd, NucleusContext nCtx) {
         if (PersistenceUtils.isNonPersistedColumn(ammd)) return;
         if (ammd.getEmbeddedMetaData() != null) {
             for (AbstractMemberMetaData eammd : ammd.getEmbeddedMetaData().getMemberMetaData()) {
-                addColumn(table, eammd, omf);
+                addColumn(table, eammd, nCtx);
             }
         } else {
-            ColumnImpl col = table.getColumnByForceApiName(PersistenceUtils.getForceApiName(ammd, omf));
+            ColumnImpl col = table.getColumnByForceApiName(PersistenceUtils.getForceApiName(ammd, nCtx));
             if (col != null) {
                 String javaFieldName = ammd.getName();
                 table.registerJavaColumn(javaFieldName, col);

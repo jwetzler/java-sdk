@@ -1,3 +1,4 @@
+
 /**
  * Copyright (c) 2011, salesforce.com, inc.
  * All rights reserved.
@@ -34,7 +35,7 @@ import com.force.sdk.jpa.entities.generated.*;
 import com.force.sdk.jpa.query.QueryHints;
 import com.force.sdk.qa.util.jpa.BaseJPAFTest;
 import com.google.inject.internal.Lists;
-import org.datanucleus.jpa.EntityManagerImpl;
+import org.datanucleus.api.jpa.JPAEntityManager;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
@@ -221,9 +222,9 @@ public class SubQueryTest extends BaseJPAFTest {
         for (int i = 1; i <= 5; i++) {
             List<Entity0> entities;
             // Test that we can also set the value using EntityManagerImpl.getFetchPlan().setMaxFetchDepth()
-            int oldDepth = ((EntityManagerImpl) em).getFetchPlan().getMaxFetchDepth();
+            int oldDepth = ((JPAEntityManager) em).getFetchPlan().getMaxFetchDepth();
             try {
-                ((EntityManagerImpl) em).getFetchPlan().setMaxFetchDepth(i);
+                ((JPAEntityManager) em).getFetchPlan().setMaxFetchDepth(i);
                 entities = em.createQuery("select o from Entity0 o)", Entity0.class).getResultList();
                 verifyLazyFetchingOfEntities(entities);
 
@@ -231,7 +232,7 @@ public class SubQueryTest extends BaseJPAFTest {
                 e0 = em.find(Entity0.class, entities.get(0).getId());
                 verifyLazyFetchingOfEntities(Collections.singletonList(e0));
             } finally {
-                ((EntityManagerImpl) em).getFetchPlan().setMaxFetchDepth(oldDepth);
+                ((JPAEntityManager) em).getFetchPlan().setMaxFetchDepth(oldDepth);
             }
 
             em.clear();

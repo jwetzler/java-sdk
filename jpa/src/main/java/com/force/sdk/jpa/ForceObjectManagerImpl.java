@@ -26,22 +26,17 @@
 
 package com.force.sdk.jpa;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.datanucleus.ObjectManagerFactoryImpl;
+import com.sforce.soap.partner.sobject.SObject;
+import org.datanucleus.NucleusContext;
 import org.datanucleus.ObjectManagerImpl;
-import org.datanucleus.StateManager;
 import org.datanucleus.exceptions.NucleusDataStoreException;
 import org.datanucleus.exceptions.NucleusObjectNotFoundException;
 import org.datanucleus.exceptions.NucleusOptimisticException;
 import org.datanucleus.state.FetchPlanState;
+import org.datanucleus.state.StateManager;
 import org.datanucleus.store.ObjectProvider;
 
-import com.sforce.soap.partner.sobject.SObject;
+import java.util.*;
 
 /**
  * 
@@ -53,7 +48,7 @@ import com.sforce.soap.partner.sobject.SObject;
 public class ForceObjectManagerImpl extends ObjectManagerImpl {
 
     private final boolean allOrNothingEnabled;
-    private boolean inAllOrNothingMode;
+    //private boolean inAllOrNothingMode;
     private LinkedHashMap<ObjectProvider, SObject> createObjectList;
     private IdentityHashMap<Object, SObject> pcToSObject;
     private List<SObject> updateObjectList;
@@ -63,24 +58,16 @@ public class ForceObjectManagerImpl extends ObjectManagerImpl {
     /**
      * Creates an object manager with datastore credentials.
      * 
-     * @param omf  the object manager factory
+     * @param nCtx the Nucleus Context
      * @param owner  the owning persistence manager or entity manager
      * @param userName  the username to the datastore
      * @param password  the password to the datastore
      */
-    public ForceObjectManagerImpl(ObjectManagerFactoryImpl omf, Object owner, String userName, String password) {
-        super(omf, owner, userName, password);
-        this.allOrNothingEnabled = omf.getOMFContext().getPersistenceConfiguration().getBooleanProperty("force.AllOrNothing");
+    public ForceObjectManagerImpl(NucleusContext nCtx, Object owner, String userName, String password) {
+        super(nCtx, owner, userName, password);
+        this.allOrNothingEnabled = nCtx.getPersistenceConfiguration().getBooleanProperty("force.AllOrNothing");
     }
-    
-    /**
-     * Checks whether an active transaction is currently flushing data to the datastore in all or nothing mode.
-     * 
-     * @return {@code true} if all or nothing mode is enabled and we are currently flushing data in this mode
-     */
-    public boolean isInAllOrNothingMode() {
-        return allOrNothingEnabled && this.inAllOrNothingMode;
-    }
+
     
     /**
      * Flushes all dirty, new, and deleted instances to the
@@ -99,26 +86,28 @@ public class ForceObjectManagerImpl extends ObjectManagerImpl {
     @Override
     public synchronized void flushInternal(boolean flushToDatastore) {
         if (flushToDatastore && allOrNothingEnabled) {
-            inAllOrNothingMode = true;
+            //inAllOrNothingMode = true;
+
+        ((ForceStoreManager) getStoreManager()).setInAllOrNothingMode(true);
             try {
                 super.flushInternal(flushToDatastore);
                 if (createObjectList != null) {
                     ((ForcePersistenceHandler) getStoreManager().getPersistenceHandler()).createObjects(createObjectList.values(),
-                            createObjectList.keySet(), getExecutionContext());
+                            createObjectList.keySet(), this);
                 }
                 if (updateObjectList != null) {
                     ((ForcePersistenceHandler) getStoreManager().getPersistenceHandler())
                         .updateObjects(updateObjectList.toArray(new SObject[updateObjectList.size()]),
-                            versionList.toArray(new Calendar[versionList.size()]), getExecutionContext());
+                            versionList.toArray(new Calendar[versionList.size()]), this);
                 }
                 if (deleteObjectList != null) {
                     ((ForcePersistenceHandler) getStoreManager().getPersistenceHandler())
-                        .deleteObjects(deleteObjectList.toArray(new String[deleteObjectList.size()]), getExecutionContext());
+                        .deleteObjects(deleteObjectList.toArray(new String[deleteObjectList.size()]), this);
                 }
             } catch (NucleusOptimisticException noe) {
                 throw new NucleusOptimisticException(LOCALISER.msg("010031"), noe.getFailedObject());
             } finally {
-                inAllOrNothingMode = false;
+        ((ForceStoreManager) getStoreManager()).setInAllOrNothingMode(false);
                 createObjectList = null;
                 updateObjectList = null;
                 versionList = null;
@@ -186,18 +175,6 @@ public class ForceObjectManagerImpl extends ObjectManagerImpl {
             deleteObjectList = new ArrayList<String>();
         }
         deleteObjectList.add(id);
-    }
-    
-    /**
-     * Marks an object (StateManager) as dirty.
-     * @param sm The StateManager
-     * @param directUpdate Flags whether the object has had a direct update made on it (if known)
-     */
-    @Override
-    public synchronized void markDirty(StateManager sm, boolean directUpdate) {
-        if (!(sm instanceof ForceJPAStateManagerImpl)) {
-            super.markDirty(sm, directUpdate);
-        }
     }
 
     /**

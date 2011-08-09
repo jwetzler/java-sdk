@@ -217,11 +217,7 @@ public class ForceQueryUtils {
     /**
      * Convenience method to get all objects of the candidate type (and optional subclasses) from the 
      * specified XML connection.
-     * 
-     * @param ec ObjectManager
-     * @param mconn WSC connection
-     * @param candidateClass Candidate
-     * @param query - parsed query
+     *
      * @return List of objects of the candidate type (or subclass)
      */
     List<Object> getObjectsOfCandidateType(Expression[] resultExpr) {
@@ -415,11 +411,11 @@ public class ForceQueryUtils {
      * @param query the query for retrieving objects
      * @return  an interface for retrieving field values
      */
-    public static FieldValues2 getFieldValues2(
+    public static FieldValues getFieldValues2(
             final AbstractClassMetaData acmd, final int[] fieldsToLoad,
             final ForceManagedConnection mconn,
             final ForceStoreManager storeManager, final XmlObject sobject, final Query query) {
-        return new FieldValues2() {
+        return new FieldValues() {
             // StateManager calls the fetchFields method
             @Override
             public void fetchFields(ObjectProvider sm) {

@@ -28,7 +28,8 @@ package com.force.sdk.jpa;
 
 import com.force.sdk.connector.ForceConnectorConfig;
 import com.force.sdk.connector.ForceServiceConnector;
-import org.datanucleus.OMFContext;
+import org.datanucleus.NucleusContext;
+import org.datanucleus.store.StoreManager;
 import org.datanucleus.store.connection.AbstractConnectionFactory;
 import org.datanucleus.store.connection.ManagedConnection;
 
@@ -44,11 +45,11 @@ public class ForceConnectionFactory extends AbstractConnectionFactory {
     /**
      * Factory constructor for Force.com connections.
      * 
-     * @param omfContext The OMF context
+     * @param storeMgr The Store Manager
      * @param resourceType Type of resource (tx, nontx)
      */
-    public ForceConnectionFactory(OMFContext omfContext, String resourceType) {
-        super(omfContext, resourceType);
+    public ForceConnectionFactory(StoreManager storeMgr, java.lang.String resourceType) {
+        super(storeMgr, resourceType);
     }
 
     /**
@@ -59,7 +60,7 @@ public class ForceConnectionFactory extends AbstractConnectionFactory {
      */
     @Override
     public ManagedConnection createManagedConnection(Object poolKey, Map transactionOptions) {
-        ForceStoreManager storeManager = (ForceStoreManager) omfContext.getStoreManager();
+        ForceStoreManager storeManager = (ForceStoreManager) storeMgr.getNucleusContext().getStoreManager();
             
         ForceServiceConnector connector = new ForceServiceConnector();
         
@@ -72,10 +73,10 @@ public class ForceConnectionFactory extends AbstractConnectionFactory {
             connector.setConnectorConfig(storeManager.getConfig());
         }
         
-        connector.setConnectionName(omfContext.getPersistenceConfiguration().getStringProperty("force.ConnectionName"));
+        connector.setConnectionName(storeMgr.getNucleusContext().getPersistenceConfiguration().getStringProperty("force.ConnectionName"));
         connector.setClientId(ForceServiceConnector.API_USER_AGENT);
-        connector.setTimeout(omfContext.getPersistenceConfiguration().getIntProperty("datanucleus.datastoreReadTimeout"));
-        connector.setSkipCache(omfContext.getPersistenceConfiguration()
+        connector.setTimeout(storeMgr.getNucleusContext().getPersistenceConfiguration().getIntProperty("datanucleus.datastoreReadTimeout"));
+        connector.setSkipCache(storeMgr.getNucleusContext().getPersistenceConfiguration()
                                             .getBooleanProperty("force.skipConfigCache", false /* resultIfNotSet */));
         
         return new ForceManagedConnection(connector);

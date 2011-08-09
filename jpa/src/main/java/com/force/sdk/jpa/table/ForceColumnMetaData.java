@@ -32,7 +32,7 @@ import com.force.sdk.jpa.schema.ForceMemberMetaData;
 import com.force.sdk.jpa.schema.ForceStoreSchemaHandler;
 import com.sforce.soap.metadata.*;
 import com.sforce.ws.types.Time;
-import org.datanucleus.OMFContext;
+import org.datanucleus.NucleusContext;
 import org.datanucleus.exceptions.NucleusDataStoreException;
 import org.datanucleus.exceptions.NucleusUserException;
 import org.datanucleus.metadata.AbstractClassMetaData;
@@ -157,7 +157,7 @@ public class ForceColumnMetaData extends ForceMetaData {
         }
     }
 
-    private void validateColumn(AbstractMemberMetaData ammd, OMFContext omf) {
+    private void validateColumn(AbstractMemberMetaData ammd, NucleusContext nucleusContext) {
         Map<String, String> extensions = PersistenceUtils.getForceExtensions(ammd);
         FieldType fieldType = PersistenceUtils.getFieldTypeFromForceAnnotation(extensions);
         AccessibleObject ao = (AccessibleObject) ammd.getMemberRepresented();
@@ -229,7 +229,7 @@ public class ForceColumnMetaData extends ForceMetaData {
              */
             FieldType type =
                 PersistenceUtils.getFieldTypeFromForceAnnotation(
-                        PersistenceUtils.getForceExtensions(ammd.getRelatedMemberMetaData(omf.getClassLoaderResolver(null))[0]));
+                        PersistenceUtils.getForceExtensions(ammd.getRelatedMemberMetaData(nucleusContext.getClassLoaderResolver(null))[0]));
             if (type != null && type == FieldType.MasterDetail) {
                 if (ammd.getCollection() != null) {
                     ammd.getCollection().setDependentElement(false);
@@ -244,7 +244,7 @@ public class ForceColumnMetaData extends ForceMetaData {
         AbstractMemberMetaData[] membersInThisClass =  cmd.getManagedMembers();
         if (membersInThisClass != null && membersInThisClass.length > 0) {
             for (AbstractMemberMetaData ammd : membersInThisClass) {
-                validateColumn(ammd, storeManager.getOMFContext());
+                validateColumn(ammd, storeManager.getNucleusContext());
                 AbstractClassMetaData relatedEntity =
                     storeManager.getMetaDataManager().getMetaDataForEntityName(ammd.getType().getSimpleName());
                 if (relatedEntity != null && relatedEntity.isEmbeddedOnly()) {
@@ -274,7 +274,7 @@ public class ForceColumnMetaData extends ForceMetaData {
         if (PersistenceUtils.isNonPersistedColumn(ammd)) return;
         if (!tableImpl.isValid() || storeManager.isForDelete()
                 || tableImpl.getColumnByForceApiName(
-                        PersistenceUtils.getForceApiName(ammd, storeManager.getOMFContext())) == null) {
+                        PersistenceUtils.getForceApiName(ammd, storeManager.getNucleusContext())) == null) {
             fieldsToAdd.add(ammd);
         }
     }
@@ -300,10 +300,10 @@ public class ForceColumnMetaData extends ForceMetaData {
                     continue;
                 }
                 Map<String, String> extensions = PersistenceUtils.getForceExtensions(ammd);
-                String fieldName = PersistenceUtils.getForceApiName(ammd, storeManager.getOMFContext());
+                String fieldName = PersistenceUtils.getForceApiName(ammd, storeManager.getNucleusContext());
                 AbstractClassMetaData relatedClass = ammd.getType() != null
                         ? storeManager.getMetaDataManager().getMetaDataForClass(ammd.getType(),
-                                storeManager.getOMFContext().getClassLoaderResolver(null)) : null;
+                                storeManager.getNucleusContext().getClassLoaderResolver(null)) : null;
                 // Try the first column if specified
                 ColumnMetaData[] colmds = ammd.getColumnMetaData();
                 ColumnMetaData colmd = null;

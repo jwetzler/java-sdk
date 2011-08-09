@@ -146,7 +146,12 @@
     </dependency>
     <dependency>
       <groupId>org.datanucleus</groupId>
-      <artifactId>datanucleus-jpa</artifactId>
+      <artifactId>datanucleus-api-jpa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.datanucleus</groupId>
+      <artifactId>datanucleus-api-jdo</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -26,22 +26,23 @@
 
 package com.force.sdk.jpa.mock;
 
-import static mockit.Deencapsulation.invoke;
-import static mockit.Deencapsulation.newInstance;
+import com.force.sdk.jpa.annotation.CustomField;
+import com.force.sdk.jpa.annotation.CustomObject;
+import com.force.sdk.jpa.table.ColumnImpl;
+import com.force.sdk.jpa.table.RelationshipImpl;
+import com.force.sdk.jpa.table.TableImpl;
+import com.force.sdk.jpa.table.TableName;
+import com.sforce.soap.partner.Field;
+import org.datanucleus.NucleusContext;
+import org.datanucleus.api.jpa.metadata.JPAMetaDataManager;
+import org.datanucleus.metadata.MetaDataManager;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import org.datanucleus.OMFContext;
-import org.datanucleus.PersistenceConfiguration;
-import org.datanucleus.jpa.metadata.JPAMetaDataManager;
-import org.datanucleus.metadata.MetaDataManager;
-
-import com.force.sdk.jpa.annotation.CustomField;
-import com.force.sdk.jpa.annotation.CustomObject;
-import com.force.sdk.jpa.table.*;
-import com.sforce.soap.partner.Field;
+import static mockit.Deencapsulation.invoke;
+import static mockit.Deencapsulation.newInstance;
 
 /**
  * A mocked PersistenceUtils class.
@@ -164,9 +165,9 @@ public final class MockPersistenceUtils {
         
         // Construct a virtual TableImpl just like how the ForceStoreSchemaHandler would
         // (see ForceStoreSchemaHandler.addVirtualTable)
-        OMFContext omfContext = new OMFContext(new PersistenceConfiguration() { });
-        MetaDataManager metaDataManager = new JPAMetaDataManager(omfContext);
+        NucleusContext nucleusContext = new NucleusContext("JPA", null);
+        MetaDataManager metaDataManager = new JPAMetaDataManager(nucleusContext);
         return new TableImpl(tableName,
-                             metaDataManager.getMetaDataForClass(entityClass, omfContext.getClassLoaderResolver(null)));
+                             metaDataManager.getMetaDataForClass(entityClass, nucleusContext.getClassLoaderResolver(null)));
     }
 }

@@ -33,7 +33,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContextType;
 import javax.persistence.spi.PersistenceUnitInfo;
 
-import org.datanucleus.jpa.EntityManagerFactoryImpl;
+import org.datanucleus.NucleusContext;
+import org.datanucleus.api.jpa.JPAEntityManager;
+import org.datanucleus.api.jpa.JPAEntityManagerFactory;
 
 /**
  * 
@@ -41,7 +43,7 @@ import org.datanucleus.jpa.EntityManagerFactoryImpl;
  *
  * @author Fiaz Hossain
  */
-public class ForceEntityManagerFactory extends EntityManagerFactoryImpl {
+public class ForceEntityManagerFactory extends JPAEntityManagerFactory {
 
     /**
      * Creates an entity manager factory with the given persistence unit info and property overrides.
@@ -62,9 +64,9 @@ public class ForceEntityManagerFactory extends EntityManagerFactoryImpl {
     public ForceEntityManagerFactory(String unitName, Map overridingProps) {
         super(unitName, overridingProps);
     }
-    
+
     @Override
-    protected EntityManager newEntityManager(PersistenceContextType contextType, PersistenceManagerFactory pmf) {
-        return new ForceEntityManager(this, pmf, contextType);
+    protected EntityManager newEntityManager(NucleusContext nucleusCtx, PersistenceContextType contextType) {
+        return new ForceEntityManager(this, nucleusCtx, contextType);
     }
 }

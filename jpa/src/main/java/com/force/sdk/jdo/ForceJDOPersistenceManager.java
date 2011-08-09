@@ -26,10 +26,10 @@
 
 package com.force.sdk.jdo;
 
-import org.datanucleus.jdo.JDOFetchPlan;
-import org.datanucleus.jdo.JDOPersistenceManagerFactory;
-
 import com.force.sdk.jpa.ForceObjectManagerImpl;
+import org.datanucleus.NucleusContext;
+import org.datanucleus.api.jdo.JDOFetchPlan;
+import org.datanucleus.api.jdo.JDOPersistenceManagerFactory;
 
 /**
  * 
@@ -38,7 +38,7 @@ import com.force.sdk.jpa.ForceObjectManagerImpl;
  *
  * @author Fiaz Hossain
  */
-public class ForceJDOPersistenceManager extends org.datanucleus.jdo.JDOPersistenceManager {
+public class ForceJDOPersistenceManager extends org.datanucleus.api.jdo.JDOPersistenceManager {
 
     /**
      * 
@@ -50,8 +50,20 @@ public class ForceJDOPersistenceManager extends org.datanucleus.jdo.JDOPersisten
      */
     public ForceJDOPersistenceManager(JDOPersistenceManagerFactory apmf, String userName, String password) {
         super(apmf, userName, password);
-        this.objectMgr = new ForceObjectManagerImpl(apmf, this, userName, password);
-        fetchPlan = new JDOFetchPlan(objectMgr.getFetchPlan());
-        setTransaction(objectMgr.getTransaction());
+        this.om = new ForceObjectManagerImpl(apmf.getNucleusContext(), this, userName, password);
+        fetchPlan = new JDOFetchPlan(om.getFetchPlan());
+        setTransaction(om.getTransaction());
+    }
+
+    @Override
+    public void setQueryTimeoutMillis(Integer integer) {
+        // todo: Auto-generated method stub
+
+    }
+
+    @Override
+    public Integer getQueryTimeoutMillis() {
+        // todo: Auto-generated method stub
+        return null;
     }
 }

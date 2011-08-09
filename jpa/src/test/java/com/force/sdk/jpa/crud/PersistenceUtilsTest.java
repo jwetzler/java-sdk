@@ -96,7 +96,7 @@ public class PersistenceUtilsTest {
         AbstractClassMetaData acmd = om.getMetaDataManager().getMetaDataForClass(entityClass, null);
         AbstractMemberMetaData ammd = acmd.getMetaDataForMember(memberName);
         
-        String apiName = PersistenceUtils.getForceApiName(ammd, om.getOMFContext());
+        String apiName = PersistenceUtils.getForceApiName(ammd, om.getNucleusContext());
         assertEquals(apiName, expectedApiName, "Unexpected API name");
     }
 }

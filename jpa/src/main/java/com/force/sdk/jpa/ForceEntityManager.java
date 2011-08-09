@@ -26,24 +26,27 @@
 
 package com.force.sdk.jpa;
 
-import java.util.*;
-
-import javax.jdo.PersistenceManagerFactory;
-import javax.jdo.spi.PersistenceCapable;
-import javax.persistence.*;
-
+import com.force.sdk.jpa.query.ForceQueryUtils;
+import com.force.sdk.jpa.query.QueryHints;
+import org.datanucleus.NucleusContext;
 import org.datanucleus.PersistenceConfiguration;
-import org.datanucleus.StateManager;
+import org.datanucleus.api.jpa.JPAEntityManager;
+import org.datanucleus.api.jpa.JPAQuery;
+import org.datanucleus.api.jpa.NucleusJPAHelper;
 import org.datanucleus.exceptions.NucleusException;
-import org.datanucleus.jpa.*;
 import org.datanucleus.metadata.AbstractClassMetaData;
 import org.datanucleus.metadata.QueryResultMetaData;
+import org.datanucleus.state.StateManager;
 import org.datanucleus.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.force.sdk.jpa.query.ForceQueryUtils;
-import com.force.sdk.jpa.query.QueryHints;
+import javax.jdo.PersistenceManagerFactory;
+import javax.jdo.spi.PersistenceCapable;
+import javax.persistence.*;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Map;
 
 /**
  * 
@@ -53,7 +56,7 @@ import com.force.sdk.jpa.query.QueryHints;
  *
  * @author Fiaz Hossain
  */
-public class ForceEntityManager extends EntityManagerImpl {
+public class ForceEntityManager extends JPAEntityManager {
     
     private static final String SOQL_LANGUAGE = "SOQL";
     private static final Calendar EPOCH_TIME = new GregorianCalendar(1970, 0, 1, 0, 0, 0);
@@ -73,11 +76,11 @@ public class ForceEntityManager extends EntityManagerImpl {
      * Construct an entity manager for persisting objects to Force.com.
      * 
      * @param emf the entity manager factory creating this entity manager
-     * @param pmf the persistence manager factory that will create the persistence manager
+     * @param nCtx the Nucleus Context
      * @param contextType the persistence context type for this application
      */
-    public ForceEntityManager(EntityManagerFactory emf, PersistenceManagerFactory pmf, PersistenceContextType contextType) {
-        super(emf, pmf, contextType);
+    public ForceEntityManager(EntityManagerFactory emf, NucleusContext nCtx, PersistenceContextType contextType) {
+        super(emf, nCtx, contextType);
         if (tx != null) {
             tx = new ForceEntityTransactionImpl(om);
         }
@@ -128,7 +131,7 @@ public class ForceEntityManager extends EntityManagerImpl {
         ForceJPAStateManagerImpl sm = new ForceJPAStateManagerImpl(om, acmd);
         sm.initialiseForHollowPreConstructed(null, pc);
         om.putObjectIntoCache(sm);
-        if (acmd.hasVersionStrategy()) {
+        if (acmd.isVersioned()) {
             // This is not the right value but we need something to pacify DataNucleus.
             // We require that the user set a valid version before calling merge
             sm.setVersion(EPOCH_TIME);
@@ -145,8 +148,8 @@ public class ForceEntityManager extends EntityManagerImpl {
     public Query createNativeQuery(String soqlString, Class resultClass) {
         assertIsOpen();
         try {
-            org.datanucleus.store.query.Query internalQuery = om.getOMFContext().getQueryManager().newQuery(
-                    SOQL_LANGUAGE, om.getExecutionContext(), soqlString);
+            org.datanucleus.store.query.Query internalQuery = om.getStoreManager().getQueryManager().newQuery(
+                    SOQL_LANGUAGE, getExecutionContext(), soqlString);
             if (resultClass != null) {
                 internalQuery.setResultClass(resultClass);
             }
@@ -166,8 +169,8 @@ public class ForceEntityManager extends EntityManagerImpl {
     public Query createNativeQuery(String soqlString, String resultSetMapping) {
         assertIsOpen();
         try {
-            org.datanucleus.store.query.Query internalQuery = om.getOMFContext().getQueryManager().newQuery(
-                    SOQL_LANGUAGE, om.getExecutionContext(), soqlString);
+            org.datanucleus.store.query.Query internalQuery = om.getStoreManager().getQueryManager().newQuery(
+                    SOQL_LANGUAGE, getExecutionContext(), soqlString);
             QueryResultMetaData qrmd = om.getMetaDataManager().getMetaDataForQueryResult(resultSetMapping);
             if (qrmd == null) {
                 // TODO Localise this, and check if it is the correct exception to throw
@@ -368,7 +371,7 @@ public class ForceEntityManager extends EntityManagerImpl {
      */
     private Object throwException(RuntimeException re) {
         if (re instanceof PersistenceException) {
-            PersistenceConfiguration conf = om.getOMFContext().getPersistenceConfiguration();
+            PersistenceConfiguration conf = om.getNucleusContext().getPersistenceConfiguration();
             boolean markForRollback = conf.getBooleanProperty("datanucleus.jpa.txnMarkForRollbackOnException");
             if (markForRollback) {
                 // The JPA spec says that all PersistenceExceptions thrown should mark the transaction for 
