@@ -73,6 +73,10 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
      */
     @Override
     public FileMetaData[] loadPersistenceUnit(PersistenceUnitMetaData pumd, ClassLoader loader) {
+        if (nucleusContext.getPersistenceConfiguration().getPersistenceProperties().get("datanucleus.connectionurl") == null) {
+            return super.loadPersistenceUnit(pumd, loader);
+        }
+
         // Check for a custom force connection name
         if (!nucleusContext.getPersistenceConfiguration().hasProperty("force.ConnectionName")) {
             
