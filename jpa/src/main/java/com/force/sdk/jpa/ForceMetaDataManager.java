@@ -26,30 +26,26 @@
 
 package com.force.sdk.jpa;
 
-import static com.force.sdk.jpa.ForceEntityManager.LOGGER;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.*;
-
+import com.force.sdk.jpa.model.Owner;
+import com.force.sdk.jpa.table.ColumnImpl;
+import com.force.sdk.jpa.table.TableImpl;
+import com.sforce.ws.ConnectionException;
 import org.datanucleus.ClassLoaderResolver;
 import org.datanucleus.NucleusContext;
 import org.datanucleus.api.jpa.metadata.JPAMetaDataManager;
 import org.datanucleus.exceptions.NucleusException;
 import org.datanucleus.exceptions.NucleusUserException;
 import org.datanucleus.metadata.*;
-import org.datanucleus.plugin.ConfigurationElement;
-import org.datanucleus.store.StoreManager;
-import org.datanucleus.store.connection.ConnectionFactory;
 import org.datanucleus.util.NucleusLogger;
 import org.datanucleus.util.StringUtils;
 
-import com.force.sdk.jpa.model.Owner;
-import com.force.sdk.jpa.table.ColumnImpl;
-import com.force.sdk.jpa.table.TableImpl;
-import com.sforce.ws.ConnectionException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 
-import javax.persistence.Persistence;
+import static com.force.sdk.jpa.ForceEntityManager.LOGGER;
 
 /**
  * Custom Metadata Manager so we can control the timing of Force.com object and field creation.
@@ -90,6 +86,11 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         }
 
         ForceStoreManager storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
+        if (storeManager == null) { //storeManager might be null if the context hasn't been fully initialised yet
+            nucleusContext.initialise();
+            storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
+        }
+
         if (storeManager.isSchemaCreateClient()) {
             /**
              * DataNucleus does not automatically initialize classes from jars.
@@ -260,28 +261,12 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
             }
         }
 
-        /**
-         * Call preInitialise here
-         */
-        ConfigurationElement cfElem = nucleusContext.getPluginManager().getConfigurationElementForExtension(
-            "org.datanucleus.store_connectionfactory",
-            new String[] {"datastore", "transactional"}, new String[] {"force", "true"});
-        System.err.println(cfElem);
-        String txConnectionFactoryName = cfElem.getAttribute("name");
-            try
-            {
-                ConnectionFactory cf = (ConnectionFactory)nucleusContext.getPluginManager().createExecutableExtension(
-                    "org.datanucleus.store_connectionfactory",
-                    new String[] {"datastore", "transactional"},
-                    new String[] {"force", "true"}, "class-name",
-                    new Class[] {StoreManager.class, String.class},
-                    new Object[] {this, "tx"});
-            } catch (Exception ex) {
-                System.err.println("Exception thrown: " + ex.getMessage());
-            }
-        nucleusContext.initialise();
-        ForceStoreManager storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
-        storeManager.preInitialiseFileMetaData(classMetaDataByClass.values());
+        ForceStoreManager storeManager = null;
+        if (nucleusContext.getPersistenceConfiguration().getPersistenceProperties().get("datanucleus.connectionurl") != null) {
+            nucleusContext.initialise();
+            storeManager = (ForceStoreManager) nucleusContext.getStoreManager();
+            storeManager.preInitialiseFileMetaData(classMetaDataByClass.values());
+        }
 
 
         // b). Initialise MetaData
@@ -307,7 +292,9 @@ public class ForceMetaDataManager extends JPAMetaDataManager {
         /**
          * Call postInitialise here
          */
-        storeManager.postInitialiseFileMetaData();
+        if (storeManager != null) {
+            storeManager.postInitialiseFileMetaData();
+        }
     }
     
     private void populateFieldNames(AbstractClassMetaData acmd, NucleusContext nCtx) throws ConnectionException {
